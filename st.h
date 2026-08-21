@@ -112,6 +112,7 @@ void selstart(int, int, int);
 void selextend(int, int, int, int);
 int selected(int, int);
 char *getsel(void);
+void openurl(int, int);
 
 size_t utf8encode(Rune, char *);
 
@@ -143,4 +144,6 @@ extern float alpha;
 extern float alphaUnfocus;
 extern const int boxdraw, boxdraw_bold, boxdraw_braille;
 extern unsigned int defaultcs;
-
+extern char *urlhandler;
+extern char urlchars[];
+extern char *urlprefixes[];

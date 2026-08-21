@@ -661,6 +661,101 @@ getsel(void)
 	return str;
 }
 
+static int
+urlprefixlen(Line line, int x)
+{
+	char **prefix;
+	int i, len;
+
+	for (prefix = urlprefixes; *prefix; prefix++) {
+		len = (int)strlen(*prefix);
+		if (x + len > term.col)
+			continue;
+		for (i = 0; i < len && line[x + i].u == (uchar)(*prefix)[i]; i++)
+			;
+		if (i == len)
+			return len;
+	}
+	return 0;
+}
+
+static int
+trimurl(Line line, int start, int end)
+{
+	static const char trailing[] = ".,;:!?\"'";
+	static const char opening[] = "([{";
+	static const char closing[] = ")]}";
+	const char *close;
+	int balance, i, pair;
+
+	while (end > start && line[end - 1].u < 128 &&
+	       strchr(trailing, (char)line[end - 1].u))
+		end--;
+
+	while (end > start && line[end - 1].u < 128 &&
+	       (close = strchr(closing, (char)line[end - 1].u))) {
+		pair = close - closing;
+		balance = 0;
+		for (i = start; i < end; i++) {
+			if (line[i].u == (uchar)opening[pair])
+				balance++;
+			else if (line[i].u == (uchar)closing[pair])
+				balance--;
+		}
+		if (balance >= 0)
+			break;
+		end--;
+	}
+	return end;
+}
+
+void
+openurl(int col, int row)
+{
+	static const char scheme[] = "https://";
+	Line line;
+	char *url;
+	pid_t child;
+	size_t prepend;
+	int end, prefixlen, start;
+
+	if (!BETWEEN(col, 0, term.col - 1) || !BETWEEN(row, 0, term.row - 1))
+		return;
+
+	line = TLINE(row);
+	for (start = 0; start <= col; start++) {
+		if (!(prefixlen = urlprefixlen(line, start)))
+			continue;
+		for (end = start + prefixlen; end < term.col &&
+		     line[end].u < 128 && strchr(urlchars, (char)line[end].u); end++)
+			;
+		end = trimurl(line, start, end);
+		if (!BETWEEN(col, start, end - 1))
+			continue;
+
+		prepend = line[start].u == 'w' ? sizeof(scheme) - 1 : 0;
+		url = xmalloc(prepend + end - start + 1);
+		if (prepend)
+			memcpy(url, scheme, prepend);
+		for (int i = start; i < end; i++)
+			url[prepend + i - start] = line[i].u;
+		url[prepend + end - start] = '\0';
+
+		if ((child = fork()) == 0) {
+			if (fork() == 0) {
+				setsid();
+				execlp(urlhandler, urlhandler, url, NULL);
+				_exit(127);
+			}
+			_exit(0);
+		}
+		if (child > 0)
+			waitpid(child, NULL, 0);
+		free(url);
+		return;
+	}
+}
+
 void
 selclear(void)
 {
@@ -2813,4 +2908,3 @@ redraw(void)
 	tfulldirt();
 	draw();
 }
-

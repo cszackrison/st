@@ -277,6 +277,7 @@ static int focused = 0;
 
 static int oldbutton = 3; /* button event on startup: 3 = release */
 static uint buttons; /* bit field of pressed buttons */
+static int urlclick;
 
 void
 clipcopy(const Arg *dummy)
@@ -513,6 +514,11 @@ bpress(XEvent *e)
 
 	if (1 <= btn && btn <= 11)
 		buttons |= 1 << (btn-1);
+	if (btn == Button1 && e->xbutton.state & ControlMask) {
+		urlclick = 1;
+		openurl(evcol(e), evrow(e));
+		return;
+	}
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
@@ -740,6 +746,10 @@ brelease(XEvent *e)
 
 	if (1 <= btn && btn <= 11)
 		buttons &= ~(1 << (btn-1));
+	if (btn == Button1 && urlclick) {
+		urlclick = 0;
+		return;
+	}
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
@@ -755,6 +765,9 @@ brelease(XEvent *e)
 void
 bmotion(XEvent *e)
 {
+	if (urlclick)
+		return;
+
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forcemousemod)) {
 		mousereport(e);
 		return;
