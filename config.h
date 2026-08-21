@@ -44,9 +44,9 @@ static unsigned int tripleclicktimeout = 600;
 /* alt screens */
 int allowaltscreen = 1;
 
-/* allow certain non-interactive (insecure) window operations such as:
-   setting the clipboard text */
-int allowwindowops = 0;
+/* Allow terminal applications, including remote Herdr sessions, to set the
+ * local clipboard with OSC 52. Terminal output can replace clipboard text. */
+int allowwindowops = 1;
 
 /*
  * draw latency range in ms - from new content/keypress/etc until drawing.
