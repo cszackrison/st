@@ -403,8 +403,10 @@ mousesel(XEvent *e, int done)
 		}
 	}
 	selextend(evcol(e), evrow(e), seltype, done);
-	if (done)
+	if (done) {
 		setsel(getsel(), e->xbutton.time);
+		clipcopy(NULL);
+	}
 }
 
 void
@@ -2363,4 +2365,3 @@ run:
 
 	return 0;
 }
-
