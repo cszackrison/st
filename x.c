@@ -845,8 +845,11 @@ xloadcolor(int i, const char *name, Color *ncolor)
 void
 xloadalpha(void)
 {
-	float const usedAlpha = focused ? alpha : alphaUnfocus;
-	if (opt_alpha) alpha = strtof(opt_alpha, NULL);
+	float usedAlpha;
+
+	if (opt_alpha)
+		alpha = strtof(opt_alpha, NULL);
+	usedAlpha = focused ? alpha : alphaUnfocus;
 	dc.col[defaultbg].color.alpha = (unsigned short)(0xffff * usedAlpha);
 	dc.col[defaultbg].pixel &= 0x00FFFFFF;
 	dc.col[defaultbg].pixel |= (unsigned char)(0xff * usedAlpha) << 24;
@@ -1291,6 +1294,7 @@ xicdestroy(XIC xim, XPointer client, XPointer call)
 void
 xinit(int cols, int rows)
 {
+	float requested_alpha;
 	XGCValues gcvalues;
 	Cursor cursor;
 	Window parent;
@@ -1303,7 +1307,8 @@ xinit(int cols, int rows)
 
 	if (!(opt_embed && (parent = strtol(opt_embed, NULL, 0)))) {
 		parent = XRootWindow(xw.dpy, xw.scr);
-		xw.depth = 32;
+		requested_alpha = opt_alpha ? strtof(opt_alpha, NULL) : alpha;
+		xw.depth = requested_alpha < 1.0 ? 32 : XDefaultDepth(xw.dpy, xw.scr);
 	} else {
 		XGetWindowAttributes(xw.dpy, parent, &attr);
 		xw.depth = attr.depth;
@@ -2288,11 +2293,11 @@ config_init(void)
 void
 usage(void)
 {
-	die("usage: %s [-aiv] [-c class] [-f font] [-g geometry]"
+	die("usage: %s [-aiv] [-A alpha] [-c class] [-f font] [-g geometry]"
 	    " [-n name] [-o file]\n"
 	    "          [-T title] [-t title] [-w windowid]"
 	    " [[-e] command [args ...]]\n"
-	    "       %s [-aiv] [-c class] [-f font] [-g geometry]"
+	    "       %s [-aiv] [-A alpha] [-c class] [-f font] [-g geometry]"
 	    " [-n name] [-o file]\n"
 	    "          [-T title] [-t title] [-w windowid] -l line"
 	    " [stty_args ...]\n", argv0, argv0);
